@@ -57,9 +57,8 @@ int main() {
 
       write_metrics(fp);
 
-      pclose(fp);
-
       sleep(5);
+      pclose(fp); //the latency between this and popen allows for a potential double free
     }
     return 0; 
 
@@ -105,8 +104,6 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
 
     token = strtok(NULL, " \n");
     c++;
-
-    sleep(5);
   }
 
   // for (int i=0; i < size_of_fields; i++) {
