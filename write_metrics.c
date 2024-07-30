@@ -59,6 +59,7 @@ int main() {
 
       sleep(5);
       pclose(fp); //the latency between this and popen allows for a potential double free
+      clear_table();
     }
     return 0; 
 
