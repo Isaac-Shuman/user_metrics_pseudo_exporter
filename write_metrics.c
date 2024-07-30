@@ -8,6 +8,8 @@
 #include "uthash.h"
 #define MAX_LINE_SIZE 256
 #define MAX_USER_SIZE 64
+#define DELAY 3
+//#define DEBUG
 
 int find_empty_line(FILE *fp, char *line, int line_size);
 int is_line_empty(const char *line);
@@ -22,7 +24,7 @@ struct user_attributes {
   char user[MAX_USER_SIZE];
   double cpu_usage;
   double ram_usage;
-  UT_hash_handle hh;         /* makes this structure hashable */
+  UT_hash_handle hh; //makes this structure hashable
 };
 
 struct user_attributes *hash_table = NULL;
@@ -57,7 +59,7 @@ int main() {
 
       write_metrics(fp);
 
-      sleep(5);
+      sleep(DELAY);
       pclose(fp); //the latency between this and popen allows for a potential double free
       clear_table();
     }
@@ -107,9 +109,11 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
     c++;
   }
 
-  // for (int i=0; i < size_of_fields; i++) {
-  //   printf("%i\n", col_nums[i]);
-  // }
+  #if defined DEBUG
+  for (int i=0; i < size_of_fields; i++) {
+    printf("%i\n", col_nums[i]);
+  }
+  #endif
   return 0;
 }
 
@@ -123,7 +127,9 @@ int parse_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
     token = strtok(line, " ");
     while (token != NULL) {
       if (c == col_nums[0]) {
-        //printf("%s ", token);
+        #ifdef DEBUG
+        printf("%s ", token);
+        #endif
         HASH_FIND_STR(hash_table, token, new_user_atts);
         if (new_user_atts == NULL) {
           new_user_atts = init_user_atts(token);
@@ -131,11 +137,15 @@ int parse_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
         }
       }
       else if (c == col_nums[1]) {
-        //printf("%s ", token);
+        #ifdef DEBUG
+        printf("%s ", token);
+        #endif
         new_user_atts->cpu_usage = new_user_atts->cpu_usage + atof(token);
       }
       else if (c == col_nums[2]) {
-        //printf("%s \n", token);
+        #ifdef DEBUG
+        printf("%s \n", token);
+        #endif
         new_user_atts->ram_usage = new_user_atts->ram_usage + atof(token);
       }
       token = strtok(NULL, " ");
@@ -193,7 +203,7 @@ void write_metrics() {
 }
 
 void handle_sigint(int sig) {
-  printf("Metrics writer exiting\n");
+  printf("\nMetrics writer exiting\n");
 
   clear_table();
   pclose(fp);
