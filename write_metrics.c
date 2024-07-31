@@ -4,9 +4,13 @@
 #include <ctype.h> //used for checking if line is empy
 #include <signal.h> //used for stopping gracefully
 #include <unistd.h> //for sleeping
+#include <errno.h> //need o insert perror("whatever I want") and exit(errno) later
+#include <fcntl.h> 
 
 #include "uthash.h"
+
 #define MAX_LINE_SIZE 256
+#define MAX_FILE_PATH 256
 #define MAX_USER_SIZE 64
 #define DELAY 3
 //#define DEBUG
@@ -31,8 +35,9 @@ struct user_attributes *hash_table = NULL;
 
 FILE *fp;
 
-int main() {
+int main(int argc, char **argv) {
     char line[MAX_LINE_SIZE];
+    char filepath[MAX_FILE_PATH];
     long buffer_size;
     long read_size;
     char *fields[] = {"USER", "%CPU", "%MEM"};
@@ -42,25 +47,21 @@ int main() {
 
     while(1) {
       // Open the command for reading
-      fp = popen("top -b -n 1", "r");
+      fp = popen("top -b -n 1 -w 100", "r"); //assumes 100 is sufficient width
+      //system("top -b -n 1 > added_by_exporter.prom");
+      //fp = fopen("./added_by_exporter.prom", "r");
       if (fp == NULL) {
         printf("Failed to run command\n" );
         handle_sigint(0);
         return 1;
       }
-
-
-      //iterate until we read an empty line
       find_empty_line(fp, line, sizeof(line));
-
       find_cols_of_fields((char **) fields, sizeof(fields)/sizeof(fields[0]), col_nums, fp, line, sizeof(line));
-
       parse_for_metrics(fp, line, sizeof(line), col_nums);
-
       write_metrics(fp);
 
       sleep(DELAY);
-      pclose(fp); //the latency between this and popen allows for a potential double free
+      fclose(fp); //the latency between this and popen allows for a potential double free
       clear_table();
     }
     return 0; 
