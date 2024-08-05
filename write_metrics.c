@@ -33,7 +33,7 @@ int is_line_empty(const char *line);
 int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *fp, char *line, int line_size);
 int parse_top_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
 void write_top_metrics(void);
-int parse_slurm_for_metricss(FILE *fp, char *line, int line_size, int *col_nums);
+int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
 void write_slurm_metrics(void);
 
 struct user_attributes *init_user_atts(char *username);
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
       fclose(fp);
       #endif
       #ifdef GATHER_SLURM
-      fclose(slurm_fp)
+      fclose(slurm_fp);
       #endif
     }
     return 0; 
@@ -286,12 +286,12 @@ void write_slurm_metrics(void) {
 
   //add test case for making sure there are no traling spaces
 
-  fprintf(file, "# HELP ncpu how many cpus the user is using on the gpu nodes\n\
+  fprintf(file, "\n# HELP ncpu how many cpus the user is using on the gpu nodes\n\
 # TYPE ncpu gauge\n");
   fprintf(file, "ncpu{user=\"not_from_top\"} %.2f\n", 4.0);
   
   HASH_ITER(hh, hash_table, current_user, tmp) {
-      fprintf(file, "ncpu{user=\"%s\"} %.2f\n", current_user->user, current_user->ncpus);
+      fprintf(file, "ncpu{user=\"%s\"} %.2f\n", current_user->user, (double) current_user->ncpus);
   }
   fclose(file);
 }
