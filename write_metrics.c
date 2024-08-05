@@ -288,12 +288,11 @@ void write_slurm_metrics(void) {
 
   fprintf(file, "# HELP ncpu how many cpus the user is using on the gpu nodes\n\
 # TYPE ncpu gauge\n");
-  fprintf(file, "cpu_usage{user=\"not_from_top\"} %.2f\n", 4.0);
+  fprintf(file, "ncpu{user=\"not_from_top\"} %.2f\n", 4.0);
   
   HASH_ITER(hh, hash_table, current_user, tmp) {
-      fprintf(file, "cpu_usage{user=\"%s\"} %.2f\n", current_user->user, current_user->ncpus);
+      fprintf(file, "ncpu{user=\"%s\"} %.2f\n", current_user->user, current_user->ncpus);
   }
-
   fclose(file);
 }
 
