@@ -134,7 +134,7 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
   if (fgets(line, line_size, fp) == NULL)
     return 1;
   //    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM
-  char *token;
+  char *token = NULL;
   int i = 0;
   int c = 0;
   token = strtok(line, " \n");
@@ -159,7 +159,7 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
 }
 
 int parse_top_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
-  char *token = token;
+  char *token = NULL;
   int c = 0;
   struct user_attributes *new_user_atts;
   
@@ -198,7 +198,7 @@ int parse_top_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
 }
 
 int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
-  char *token = token;
+  char *token = NULL;
   int c = 0;
   struct user_attributes *new_user_atts;
   
@@ -235,6 +235,7 @@ struct user_attributes *init_user_atts(char *username) {
   strcpy(new_user_atts->user, username);
   new_user_atts->cpu_usage = 0.0;
   new_user_atts->ram_usage = 0.0;
+  new_user_atts->ncpus = 0;
 
   return new_user_atts;
 }
