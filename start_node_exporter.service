@@ -1,0 +1,12 @@
+[Unit]
+Description=Prometheus Node Exporter
+After=network.target
+
+[Service]
+User=shumani
+ExecStart=/home/shumani/stuffIsaacAdded/user_metrics_pseudo_exporter/node_exporter-1.8.2.linux-amd64/node_exporter \
+--collector.disable-defaults --collector.textfile --collector.textfile.directory=/tmp/ \
+--web.listen-address=:9201 --web.disable-exporter-metrics
+
+[Install]
+WantedBy=multi-user.target

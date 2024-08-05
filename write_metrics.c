@@ -11,8 +11,16 @@
 
 #define MAX_LINE_SIZE 256
 #define MAX_FILE_PATH 256
-#define MAX_USER_SIZE 64
+#define MAX_USER_SIZE 64 //only used for mallocing the user name when storing it in the user_attributes structure
 #define DELAY 3
+
+#define TOP_WIDTH 512 //passed with -w flag
+#define STRINGIZE(x) #x
+#define STRINGIZE_WRAP(x) STRINGIZE(x)
+
+//where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
+#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
+
 //#define DEBUG
 
 int find_empty_line(FILE *fp, char *line, int line_size);
@@ -47,7 +55,7 @@ int main(int argc, char **argv) {
 
     while(1) {
       // Open the command for reading
-      fp = popen("top -b -n 1 -w 100", "r"); //assumes 100 is sufficient width
+      fp = popen("top -b -n 1 -w " STRINGIZE_WRAP(TOP_WIDTH), "r"); //assumes 512 is sufficient width
       //system("top -b -n 1 > added_by_exporter.prom");
       //fp = fopen("./added_by_exporter.prom", "r");
       if (fp == NULL) {
@@ -181,20 +189,20 @@ void clear_table(void)
 void write_metrics() {
   struct user_attributes *current_user;
   struct user_attributes *tmp;
-  FILE *file = fopen("added_by_exporter.prom", "w");
+  FILE *file = fopen(EXPOSITION_FILENAME, "w");
 
   //add test case for making sure there are no traling spaces
 
   fprintf(file, "# HELP cpu_usage how much cpu a user is using\n\
 # TYPE cpu_usage gauge\n");
-  fprintf(file, "cpu_usage{user=\"your_mom\"} %.2f\n", 4.0);
+  fprintf(file, "cpu_usage{user=\"not_from_top\"} %.2f\n", 4.0);
   
   HASH_ITER(hh, hash_table, current_user, tmp) {
       fprintf(file, "cpu_usage{user=\"%s\"} %.2f\n", current_user->user, current_user->cpu_usage);
   }
 
   fprintf(file, "\n# HELP ram_usage how much ram a user is using\n\# TYPE ram_usage gauge\n");
-  fprintf(file, "ram_usage{user=\"your_mom\"} %.2f\n", 4.0);
+  fprintf(file, "ram_usage{user=\"not_from_top\"} %.2f\n", 4.0);
   
   HASH_ITER(hh, hash_table, current_user, tmp) {
     fprintf(file, "ram_usage{user=\"%s\"} %.2f\n", current_user->user, current_user->ram_usage);

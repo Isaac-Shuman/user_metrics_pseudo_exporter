@@ -6,12 +6,12 @@ services:
     # - '9091:9091'
     command:
     - --config.file=/etc/prometheus/prometheus.yml
-    - "--storage.tsdb.path=/prometheus"
+    - --storage.tsdb.path=/prometheus
     - '--web.listen-address=:9091'
 
     volumes:
-    - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    - /bin/bash:/bin/bash
+    - /home/shumani/stuffIsaacAdded/user_metrics_pseudo_exporter/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    - prometheus-storage:/prometheus
     network_mode: "host"
 
   grafana:
@@ -22,14 +22,16 @@ services:
     - '3000:3000'
     volumes:
     - grafana-storage:/var/lib/grafana
-    - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    #- /home/shumani/stuffIsaacAdded/user_metrics_pseudo_exporter/grafana/datasources:/etc/grafana/provisioning/datasources
     environment:
     - GF_SECURITY_ADMIN_USER=admin 
     - GF_SECURITY_ADMIN_PASSWORD=admin
     - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting
-    depends_on:
-    - prometheus
+    - GF_USERS_ALLOW_SIGN_UP=true
+    - GF_SECURITY_SKIP_TLS_VERIFY=true
+    - GF_SMTP_SKIP_VERIFY=true
     network_mode: "host"
     
 volumes:
-  grafana-storage: {}
+  grafana-storage: {} #This is stored at a location managed by docker
+  prometheus-storage: {}

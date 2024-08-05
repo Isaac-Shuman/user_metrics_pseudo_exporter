@@ -1,0 +1,17 @@
+[Unit]
+Description=Start Grafana and Prometheus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=shumani
+Type=simple
+Restart=always
+WorkingDirectory=/home/shumani/stuffIsaacAdded/user_metrics_pseudo_exporter
+ExecStart=/usr/bin/podman-compose up
+ExecStop=/usr/bin/podman-compose down
+ExecReload=/usr/bin/podman-compose down && /usr/bin/podman-compose up
+SyslogIdentifier=grafa_prom_podman_compose
+
+[Install]
+WantedBy=multi-user.target

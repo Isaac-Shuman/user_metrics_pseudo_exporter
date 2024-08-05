@@ -1,0 +1,10 @@
+[Unit]
+Description=Top Scraper
+After=network.target
+
+[Service]
+User=shumani
+ExecStart=/home/shumani/stuffIsaacAdded/user_metrics_pseudo_exporter/stable_top_parse_prog/write_metrics
+
+[Install]
+WantedBy=multi-user.target
