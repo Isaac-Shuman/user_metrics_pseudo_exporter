@@ -93,8 +93,6 @@ int main(int argc, char **argv) {
       find_cols_of_fields((char **) fields, sizeof(fields)/sizeof(fields[0]), col_nums, fp, line, sizeof(line)); //make sizeof stuff a macro??
       parse_top_for_metrics(fp, line, sizeof(line), col_nums);
       //write_top_metrics();
-      WRITE_METRICS_FLOAT(cpu_usage, "how much cpu a user is using", "gauge");
-      WRITE_METRICS_FLOAT(ram_usage, "how much ram a user is using", "gauge");
       #endif
 
       #ifdef GATHER_SLURM
@@ -105,6 +103,15 @@ int main(int argc, char **argv) {
       parse_slurm_for_metrics(slurm_fp, line, sizeof(line), slurm_col_nums);
       WRITE_METRICS_FLOAT(ncpus, "how many cpus the user is using on the gpu nodes", "gauge");
       //write_slurm_metrics();
+      #endif
+
+      fclose(fopen(EXPOSITION_FILENAME, "w")); //empty file
+      #ifdef GATHER_TOP
+      WRITE_METRICS_FLOAT(cpu_usage, "how much cpu a user is using", "gauge");
+      WRITE_METRICS_FLOAT(ram_usage, "how much ram a user is using", "gauge");
+      #endif
+      #ifdef GATHER_SLURM
+      WRITE_METRICS_FLOAT(ncpus, "how many cpus the user is using on the gpu nodes", "gauge");
       #endif
 
       sleep(DELAY);
@@ -118,7 +125,6 @@ int main(int argc, char **argv) {
       #ifdef GATHER_SLURM
       pclose(slurm_fp);
       #endif
-      fclose(fopen(EXPOSITION_FILENAME, "w")); //empty file
     }
     return 0; 
 
