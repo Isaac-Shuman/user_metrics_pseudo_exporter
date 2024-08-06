@@ -28,6 +28,18 @@
 #define NUM_OF_TOP_METRICS 3
 #define NUM_OF_SLURM_METRICS 2
 
+#define WRITE_METRICS_FLOAT(metric_name, help_msg, type)                                                 \
+  do {                                                                                                   \
+    struct user_attributes *current_user;                                                                \
+    struct user_attributes *tmp;                                                                         \
+    FILE *file = fopen(EXPOSITION_FILENAME, "a");                                                        \                                       
+    fprintf(file, "\n# HELP " #metric_name help_msg "\n# TYPE " #metric_name type"\n");                      \
+    HASH_ITER(hh, hash_table, current_user, tmp) {                                                       \
+      fprintf(file, #metric_name"{user=\"%s\"} %.2f\n", current_user->user, (double) current_user->metric_name);   \
+    }                                                                                                    \
+    fclose(file);                                                                                        \
+  } while (0)       
+
 int find_empty_line(FILE *fp, char *line, int line_size);
 int is_line_empty(const char *line);
 int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *fp, char *line, int line_size);
@@ -80,7 +92,9 @@ int main(int argc, char **argv) {
       find_empty_line(fp, line, sizeof(line));
       find_cols_of_fields((char **) fields, sizeof(fields)/sizeof(fields[0]), col_nums, fp, line, sizeof(line)); //make sizeof stuff a macro??
       parse_top_for_metrics(fp, line, sizeof(line), col_nums);
-      write_top_metrics();
+      //write_top_metrics();
+      WRITE_METRICS_FLOAT(cpu_usage, "how much cpu a user is using", "gauge");
+      WRITE_METRICS_FLOAT(ram_usage, "how much ram a user is using", "gauge");
       #endif
 
       #ifdef GATHER_SLURM
@@ -89,7 +103,8 @@ int main(int argc, char **argv) {
       if (fgets(line, sizeof(line), slurm_fp) == NULL) //skip line
             return 1;
       parse_slurm_for_metrics(slurm_fp, line, sizeof(line), slurm_col_nums);
-      write_slurm_metrics();
+      WRITE_METRICS_FLOAT(ncpus, "how many cpus the user is using on the gpu nodes", "gauge");
+      //write_slurm_metrics();
       #endif
 
       sleep(DELAY);
@@ -98,11 +113,12 @@ int main(int argc, char **argv) {
       clear_table();
       //find_empty_line(fp, line, sizeof(line));
       #ifdef GATHER_TOP
-      fclose(fp);
+      pclose(fp);
       #endif
       #ifdef GATHER_SLURM
-      fclose(slurm_fp);
+      pclose(slurm_fp);
       #endif
+      fclose(fopen(EXPOSITION_FILENAME, "w")); //empty file
     }
     return 0; 
 
@@ -251,6 +267,7 @@ void clear_table(void)
     }
 }
 
+/*
 void write_top_metrics(void) {
   struct user_attributes *current_user;
   struct user_attributes *tmp;
@@ -274,7 +291,9 @@ void write_top_metrics(void) {
   }
   fclose(file);
 }
+*/                                                                                     
 
+/*
 void write_slurm_metrics(void) {
   struct user_attributes *current_user;
   struct user_attributes *tmp;
@@ -296,6 +315,7 @@ void write_slurm_metrics(void) {
   }
   fclose(file);
 }
+*/
 
 
 void handle_sigint(int sig) {
@@ -303,6 +323,7 @@ void handle_sigint(int sig) {
 
   clear_table();
   pclose(fp);
+  pclose(slurm_fp);
 
   exit(0);
 }
