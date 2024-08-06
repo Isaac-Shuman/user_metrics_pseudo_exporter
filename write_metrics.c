@@ -33,7 +33,7 @@
     struct user_attributes *current_user;                                                                \
     struct user_attributes *tmp;                                                                         \
     FILE *file = fopen(EXPOSITION_FILENAME, "a");                                                        \                                       
-    fprintf(file, "\n# HELP " #metric_name help_msg "\n# TYPE " #metric_name type"\n");                      \
+    fprintf(file, "\n# HELP " #metric_name help_msg "\n# TYPE " #metric_name " " type "\n");                      \
     HASH_ITER(hh, hash_table, current_user, tmp) {                                                       \
       fprintf(file, #metric_name"{user=\"%s\"} %.2f\n", current_user->user, (double) current_user->metric_name);   \
     }                                                                                                    \
