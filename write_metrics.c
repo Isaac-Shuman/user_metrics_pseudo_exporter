@@ -6,7 +6,7 @@
 #include <unistd.h> //for sleeping
 #include <errno.h> //need o insert perror("whatever I want") and exit(errno) later
 #include <fcntl.h> 
-
+#include <assert.h>
 #include "uthash.h"
 
 #define MAX_LINE_SIZE 256
@@ -29,7 +29,7 @@
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
-//#define DEBUG
+#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
@@ -312,11 +312,17 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
     sscanf(line, "%s %s %s %s %s %s", pid, pgid, user, comm, pcpu, pmem);
     #ifdef DEBUG
     printf("pid is %s\n", pid);
+    assert(strlen(pid) <= 7 && strlen(pid) >= 1);
     printf("pgid is %s\n", pgid);
+    assert(strlen(pgid) <= 7 && strlen(pgid) >= 1);
     printf("user is %s\n", user);
+    assert(strlen(user) >= 3);
     printf("command is %s\n", comm);
+    assert(strlen(comm) >= 2);
     printf("CPU usage is %s\n", pcpu);
+    assert(strlen(pcpu) >= 3);
     printf("Memory usage is %s\n", pmem);
+    assert(strlen(pmem) >= 3);
     #endif
 
     pid_val = atoi(pid);
