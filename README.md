@@ -10,3 +10,5 @@ If the grafana_prom service keeps breaking I should add TimeOut to ensure podman
 
 Bash command for killing processes listenting on ports
 kill $(lsof -i | cut -d ' ' -f 2 | tr '\n' ' ' | cut -d ' ' -f 9-)
+
+SLURM and TOP gatherers operate exclusively to PS

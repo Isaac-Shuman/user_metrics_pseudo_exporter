@@ -16,13 +16,21 @@
 #define DELAY 3
 
 #define TOP_WIDTH 512 //passed with -w flag
+
+#define PID_WIDTH  8
+#define PGID_WIDTH 8
+#define USER_WIDTH 16
+#define COMM_WIDTH 16
+#define PCPU_WIDTH 5
+#define PMEM_WIDTH 5
+
 #define STRINGIZE(x) #x
 #define STRINGIZE_WRAP(x) STRINGIZE(x)
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
 
-//#define DEBUG
+#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
@@ -61,7 +69,8 @@ int is_line_empty(const char *line);
 int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *fp, char *line, int line_size);
 int parse_top_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
 int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
-int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
+int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
+size_t pid_width, size_t pgid_width, size_t user_width, size_t comm_width, size_t pcpu_width, size_t pmem_width);
 
 
 struct process_group_attributes *init_process_group_atts(int pgid);
@@ -126,14 +135,15 @@ int main(int argc, char **argv) {
       #endif
 
       #ifdef GATHER_PS
-      ps_fp = popen("ps -eo pid,pgid,user,comm,pcpu,pmem", "r");
+      ps_fp = popen("ps -e --no-header -o pid:"STRINGIZE_WRAP(PID_WIDTH)",pgid:"STRINGIZE_WRAP(PGID_WIDTH)",user:"STRINGIZE_WRAP(USER_WIDTH)\
+      ",comm:"STRINGIZE_WRAP(COMM_WIDTH)",pcpu:"STRINGIZE_WRAP(PCPU_WIDTH)",pmem:"STRINGIZE_WRAP(PMEM_WIDTH), "r");
       if (ps_fp == NULL) {
         printf("Failed to run command\n" );
         handle_sigint(0);
         return 1;
       }
-      find_cols_of_fields((char **) ps_fields, sizeof(ps_fields)/sizeof(ps_fields[0]), ps_col_nums, ps_fp, line, sizeof(line));
-      parse_ps_for_metrics(ps_fp, line, sizeof(line), ps_col_nums);
+      //find_cols_of_fields((char **) ps_fields, sizeof(ps_fields)/sizeof(ps_fields[0]), ps_col_nums, ps_fp, line, sizeof(line));
+      parse_ps_for_metrics(ps_fp, line, sizeof(line), ps_col_nums, PID_WIDTH, PGID_WIDTH, USER_WIDTH, COMM_WIDTH, PCPU_WIDTH, PMEM_WIDTH);
       #endif
 
       fclose(fopen(EXPOSITION_FILENAME, "w")); //empty file
@@ -218,71 +228,120 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
   return 0;
 }
 
-int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
-  char *token = NULL;
-  int c = 0;
+// int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
+//   char *token = NULL;
+//   int c = 0;
+//   int pid_val = 0;
+//   int pgid_val = 0;
+//   struct process_group_attributes *new_user_atts = NULL;
+  
+//   while (fgets(line, line_size, fp) != NULL) {
+//     c = 0;
+//     token = strtok(line, " ");
+//     while (token != NULL) {
+//       if (c == col_nums[0]) {
+//         #ifdef DEBUG
+//         printf("%s ", token);
+//         #endif
+//         pid_val = atoi(token);
+//       }
+//       else if (c == col_nums[1]) {
+//         #ifdef DEBUG
+//         printf("%s ", token);
+//         #endif
+//         pgid_val = atoi(token);
+//         HASH_FIND_INT(hash_table, &pgid_val, new_user_atts);
+//         if (new_user_atts == NULL) {
+//           new_user_atts = init_process_group_atts(pgid_val);
+//           HASH_ADD_INT(hash_table, pgid, new_user_atts);
+//         }
+//       }
+//       else if (c == col_nums[2]) {
+//         #ifdef DEBUG
+//         printf("%s \n", token); //only occurs for process group leader
+//         #endif
+//         if (pid_val == pgid_val) {
+//           strcpy(new_user_atts->user, token);
+//         }
+//       }
+//       else if (c == col_nums[3]) {
+//         #ifdef DEBUG
+//         printf("%s \n", token);
+//         #endif
+//         if (pid_val == pgid_val) { //only occurs for process group leader
+//           strcpy(new_user_atts->command, token);
+//         }
+//       }
+//       else if (c == col_nums[4]) {
+//         #ifdef DEBUG
+//         printf("%s \n", token);
+//         #endif
+//         new_user_atts->cpu_usage = new_user_atts->cpu_usage + atof(token);
+//       }
+//       else if (c == col_nums[5]) {
+//         #ifdef DEBUG
+//         printf("%s \n", token);
+//         #endif
+//         new_user_atts->ram_usage = new_user_atts->ram_usage + atof(token);
+//       }
+
+//       token = strtok(NULL, " ");
+//       c++;
+//     }
+//   }
+//   return 0;
+// }
+
+int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
+                        size_t pid_width, size_t pgid_width, size_t user_width, size_t comm_width, size_t pcpu_width, size_t pmem_width) {
+  char pid[pid_width+1];
+  char pgid[pgid_width+1];
+  char user[user_width+1];
+  char comm[comm_width+1];
+  char pcpu[pcpu_width+1];
+  char pmem[pmem_width+1];
   int pid_val = 0;
   int pgid_val = 0;
-  struct process_group_attributes *new_user_atts = NULL;
-  
+  struct process_group_attributes *new_atts = NULL;
   while (fgets(line, line_size, fp) != NULL) {
-    c = 0;
-    token = strtok(line, " ");
-    while (token != NULL) {
-      if (c == col_nums[0]) {
-        #ifdef DEBUG
-        printf("%s ", token);
-        #endif
-        pid_val = atoi(token);
-      }
-      else if (c == col_nums[1]) {
-        #ifdef DEBUG
-        printf("%s ", token);
-        #endif
-        pgid_val = atoi(token);
-        HASH_FIND_INT(hash_table, &pgid_val, new_user_atts);
-        if (new_user_atts == NULL) {
-          new_user_atts = init_process_group_atts(pgid_val);
-          HASH_ADD_INT(hash_table, pgid, new_user_atts);
-        }
-      }
-      else if (c == col_nums[2]) {
-        #ifdef DEBUG
-        printf("%s \n", token); //only occurs for process group leader
-        #endif
-        if (pid_val == pgid_val) {
-          strcpy(new_user_atts->user, token);
-        }
-      }
-      else if (c == col_nums[3]) {
-        #ifdef DEBUG
-        printf("%s \n", token);
-        #endif
-        if (pid_val == pgid_val) { //only occurs for process group leader
-          strcpy(new_user_atts->command, token);
-        }
-      }
-      else if (c == col_nums[4]) {
-        #ifdef DEBUG
-        printf("%s \n", token);
-        #endif
-        new_user_atts->cpu_usage = new_user_atts->cpu_usage + atof(token);
-      }
-      else if (c == col_nums[5]) {
-        #ifdef DEBUG
-        printf("%s \n", token);
-        #endif
-        new_user_atts->ram_usage = new_user_atts->ram_usage + atof(token);
-      }
+    // strncpy(pid, line, pid_width);
+    // strncpy(pgid, line + pid_width + 1, pgid_width);
+    // strncpy(user, line + pid_width + pgid_width + 2, user_width);
+    // strncpy(comm, line + pid_width + pgid_width + user_width + 3, comm_width);
+    // strncpy(pcpu, line + pid_width + pgid_width + user_width + comm_width + 4, pcpu_width);
+    // strncpy(pmem, line + pid_width + pgid_width + user_width + comm_width + pcpu_width + 5, pmem_width);
+    sscanf(line, "%s %s %s %s %s %s", pid, pgid, user, comm, pcpu, pmem);
+    #ifdef DEBUG
+    printf("pid is %s\n", pid);
+    printf("pgid is %s\n", pgid);
+    printf("user is %s\n", user);
+    printf("command is %s\n", comm);
+    printf("CPU usage is %s\n", pcpu);
+    printf("Memory usage is %s\n", pmem);
+    #endif
 
-      token = strtok(NULL, " ");
-      c++;
+    pid_val = atoi(pid);
+    pgid_val = atoi(pgid);
+    HASH_FIND_INT(hash_table, &pgid_val, new_atts);
+    if (new_atts == NULL) {
+      new_atts = init_process_group_atts(pgid_val);
+      HASH_ADD_INT(hash_table, pgid, new_atts);
+      //ensures process groups alwalys have a user or comm listed
+      strcpy(new_atts->user, user);
+      strcpy(new_atts->command, comm);
     }
+    if (pid_val == pgid_val) {//only occurs for process group leader
+        strcpy(new_atts->user, user);
+        strcpy(new_atts->command, comm);
+    }
+    new_atts->cpu_usage = new_atts->cpu_usage + atof(pcpu);
+    new_atts->ram_usage = new_atts->ram_usage + atof(pmem);
   }
-  return 0;
+
 }
 
 struct process_group_attributes *init_process_group_atts(int pgid) {
+  /*Don't forget to free the malloced structure*/
   struct process_group_attributes *new_user_atts;
   new_user_atts = malloc(sizeof(struct process_group_attributes));
   //strcpy(new_user_atts->user, username);
