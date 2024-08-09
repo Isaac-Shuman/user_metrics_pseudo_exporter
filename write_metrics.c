@@ -29,8 +29,7 @@
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
-
-#define DEBUG
+//#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
