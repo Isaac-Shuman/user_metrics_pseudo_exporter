@@ -7,6 +7,7 @@
 #include <errno.h> //need o insert perror("whatever I want") and exit(errno) later
 #include <fcntl.h> 
 #include <assert.h>
+#include <stdbool.h>
 #include "uthash.h"
 
 #define MAX_LINE_SIZE 256
@@ -29,7 +30,7 @@
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
-//#define DEBUG
+#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
@@ -65,6 +66,7 @@
 
 int find_empty_line(FILE *fp, char *line, int line_size);
 int is_line_empty(const char *line);
+bool contains_non_ascii_printable(const char *str);
 int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *fp, char *line, int line_size);
 int parse_top_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
 int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums);
@@ -227,80 +229,28 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
   return 0;
 }
 
-// int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
-//   char *token = NULL;
-//   int c = 0;
-//   int pid_val = 0;
-//   int pgid_val = 0;
-//   struct process_group_attributes *new_user_atts = NULL;
-  
-//   while (fgets(line, line_size, fp) != NULL) {
-//     c = 0;
-//     token = strtok(line, " ");
-//     while (token != NULL) {
-//       if (c == col_nums[0]) {
-//         #ifdef DEBUG
-//         printf("%s ", token);
-//         #endif
-//         pid_val = atoi(token);
-//       }
-//       else if (c == col_nums[1]) {
-//         #ifdef DEBUG
-//         printf("%s ", token);
-//         #endif
-//         pgid_val = atoi(token);
-//         HASH_FIND_INT(hash_table, &pgid_val, new_user_atts);
-//         if (new_user_atts == NULL) {
-//           new_user_atts = init_process_group_atts(pgid_val);
-//           HASH_ADD_INT(hash_table, pgid, new_user_atts);
-//         }
-//       }
-//       else if (c == col_nums[2]) {
-//         #ifdef DEBUG
-//         printf("%s \n", token); //only occurs for process group leader
-//         #endif
-//         if (pid_val == pgid_val) {
-//           strcpy(new_user_atts->user, token);
-//         }
-//       }
-//       else if (c == col_nums[3]) {
-//         #ifdef DEBUG
-//         printf("%s \n", token);
-//         #endif
-//         if (pid_val == pgid_val) { //only occurs for process group leader
-//           strcpy(new_user_atts->command, token);
-//         }
-//       }
-//       else if (c == col_nums[4]) {
-//         #ifdef DEBUG
-//         printf("%s \n", token);
-//         #endif
-//         new_user_atts->cpu_usage = new_user_atts->cpu_usage + atof(token);
-//       }
-//       else if (c == col_nums[5]) {
-//         #ifdef DEBUG
-//         printf("%s \n", token);
-//         #endif
-//         new_user_atts->ram_usage = new_user_atts->ram_usage + atof(token);
-//       }
-
-//       token = strtok(NULL, " ");
-//       c++;
-//     }
-//   }
-//   return 0;
-// }
+bool contains_non_ascii_printable(const char *str) {
+    while (*str) {
+        if ((unsigned char)*str > 127 || (unsigned char)*str < 32) {
+            return true; // Non-ASCII character found
+        }
+        str++;
+    }
+    return false; // All characters are ASCII
+}
 
 int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
                         size_t pid_width, size_t pgid_width, size_t user_width, size_t comm_width, size_t pcpu_width, size_t pmem_width) {
-  char pid[pid_width+1];
-  char pgid[pgid_width+1];
+  // char pid[pid_width+1];
+  // char pgid[pgid_width+1];
+  int pid = 0;
+  int pgid = 0;
   char user[user_width+1];
   char comm[comm_width+1];
-  char pcpu[pcpu_width+1];
-  char pmem[pmem_width+1];
-  int pid_val = 0;
-  int pgid_val = 0;
+  //char pcpu[pcpu_width+1];
+  //char pmem[pmem_width+1];
+  double pcpu = 0.0;
+  double pmem = 0.0;
   struct process_group_attributes *new_atts = NULL;
   while (fgets(line, line_size, fp) != NULL) {
     // strncpy(pid, line, pid_width);
@@ -309,38 +259,44 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
     // strncpy(comm, line + pid_width + pgid_width + user_width + 3, comm_width);
     // strncpy(pcpu, line + pid_width + pgid_width + user_width + comm_width + 4, pcpu_width);
     // strncpy(pmem, line + pid_width + pgid_width + user_width + comm_width + pcpu_width + 5, pmem_width);
-    sscanf(line, "%s %s %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %s %s", pid, pgid, user, comm, pcpu, pmem);
+    sscanf(line, "%i %i %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
     #ifdef DEBUG
-    printf("pid is %s\n", pid);
-    assert(strlen(pid) <= 7 && strlen(pid) >= 1);
-    printf("pgid is %s\n", pgid);
-    assert(strlen(pgid) <= 7 && strlen(pgid) >= 1);
+    printf("pid is %i\n", pid);
+    assert(pid <= 9999999 && pid >= 0);
+    printf("pgid is %i\n", pgid);
+    assert(pgid <= 9999999 && pgid >= 0);
     printf("user is %s\n", user);
     assert(strlen(user) >= 3);
+    if (contains_non_ascii_printable(user)) {
+      perror("user buffer contains garbage");
+      exit(1);
+    }
     printf("command is %s\n", comm);
     assert(strlen(comm) >= 2);
-    printf("CPU usage is %s\n", pcpu);
-    assert(strlen(pcpu) >= 3);
-    printf("Memory usage is %s\n", pmem);
-    assert(strlen(pmem) >= 3);
+    if (contains_non_ascii_printable(comm)) {
+      perror("comm buffer contains garbage");
+      exit(1);
+    }
+    printf("CPU usage is %lf\n", pcpu);
+    assert(pcpu >= 0.0 && pcpu <= 9999);
+    printf("Memory usage is %lf\n", pmem);
+    assert(pmem >= 0.0 && pmem <= 9999);
     #endif
 
-    pid_val = atoi(pid);
-    pgid_val = atoi(pgid);
-    HASH_FIND_INT(hash_table, &pgid_val, new_atts);
+    HASH_FIND_INT(hash_table, &pgid, new_atts);
     if (new_atts == NULL) {
-      new_atts = init_process_group_atts(pgid_val);
+      new_atts = init_process_group_atts(pgid);
       HASH_ADD_INT(hash_table, pgid, new_atts);
       //ensures process groups alwalys have a user or comm listed
       strcpy(new_atts->user, user);
       strcpy(new_atts->command, comm);
     }
-    if (pid_val == pgid_val) {//only occurs for process group leader
+    if (pid == pgid) {//only occurs for process group leader
         strcpy(new_atts->user, user);
         strcpy(new_atts->command, comm);
     }
-    new_atts->cpu_usage = new_atts->cpu_usage + atof(pcpu);
-    new_atts->ram_usage = new_atts->ram_usage + atof(pmem);
+    new_atts->cpu_usage = new_atts->cpu_usage + pcpu;
+    new_atts->ram_usage = new_atts->ram_usage + pmem;
   }
 
 }
