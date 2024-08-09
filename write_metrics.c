@@ -29,7 +29,7 @@
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
-#define DEBUG
+//#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
@@ -309,7 +309,7 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
     // strncpy(comm, line + pid_width + pgid_width + user_width + 3, comm_width);
     // strncpy(pcpu, line + pid_width + pgid_width + user_width + comm_width + 4, pcpu_width);
     // strncpy(pmem, line + pid_width + pgid_width + user_width + comm_width + pcpu_width + 5, pmem_width);
-    sscanf(line, "%s %s %s %s %s %s", pid, pgid, user, comm, pcpu, pmem);
+    sscanf(line, "%s %s %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %s %s", pid, pgid, user, comm, pcpu, pmem);
     #ifdef DEBUG
     printf("pid is %s\n", pid);
     assert(strlen(pid) <= 7 && strlen(pid) >= 1);
