@@ -231,7 +231,7 @@ int find_cols_of_fields(char **fields, int size_of_fields, int *col_nums, FILE *
 
 bool contains_non_ascii_printable(const char *str) {
     while (*str) {
-        if ((unsigned char)*str > 127 || (unsigned char)*str < 32) {
+        if ((unsigned char)*str > 127) {
             return true; // Non-ASCII character found
         }
         str++;
