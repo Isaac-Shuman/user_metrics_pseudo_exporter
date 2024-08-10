@@ -1,2 +1,5 @@
 *.prom
 *.exe
+stable_top_parse_prog*
+write_metrics
+*.o

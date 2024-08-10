@@ -8,7 +8,7 @@ write_metrics : $(objects)
 	gcc -o write_metrics $(objects)
 
 write_metrics.o : write_metrics.c uthash.h
-	gcc $(CFLAGS) -c write_metrics.c
+	gcc $(CFLAGS) $(EXTRA_FLAGS) -c write_metrics.c
 
 clean :
 	rm write_metrics $(objects)
@@ -16,7 +16,7 @@ clean :
 run_scraper : write_metrics
 #remove added_by_prom.prom to simplify debugging
 	-rm $(EXPOSITION_FILENAME)
-	./write_metrics &
+	./write_metrics
 	sleep 1
 	if [ -e $(EXPOSITION_FILENAME) ]; then \
 		echo "Exposition file created"; \
