@@ -283,6 +283,9 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, int *col_nums, \
     assert(pmem >= 0.0 && pmem <= 9999);
     #endif
 
+    user[user_width] = '\0';
+    comm[comm_width] = '\0';
+
     HASH_FIND_INT(hash_table, &pgid, new_atts);
     if (new_atts == NULL) {
       new_atts = init_process_group_atts(pgid);
