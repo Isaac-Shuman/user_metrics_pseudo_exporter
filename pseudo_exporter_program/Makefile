@@ -27,7 +27,7 @@ run_scraper : write_metrics
 	fi
 
 run_exporter : 
-	./node_exporter-1.8.2.linux-amd64/node_exporter \
+	../node_exporter-1.8.2.linux-amd64/node_exporter \
 	--collector.disable-defaults --collector.textfile \
 	--collector.textfile.directory=$(EXPOSITION_DIR) --web.listen-address=:$(EXPORTER_PORT) --web.disable-exporter-metrics &
 
