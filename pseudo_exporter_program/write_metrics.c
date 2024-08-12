@@ -76,8 +76,8 @@ void handle_sigint(int sig);
 
 struct process_group_attributes {
   int pgid;
-  char command[MAX_COMMAND_SIZE];
-  char user[MAX_USER_SIZE];
+  char command[COMM_WIDTH+1];
+  char user[USER_WIDTH+1];
   double cpu_usage;
   double ram_usage;
   UT_hash_handle hh; //makes this structure hashable
@@ -203,6 +203,9 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
       perror("sscanf");
       exit(EXIT_FAILURE);
     }
+    //user[USER_WIDTH] = '\0'; //this should be uneccesary
+    //comm[COMM_WIDTH] = '\0';
+
     #ifdef DEBUG
     printf("pid is %i\n", pid);
     assert(pid <= 9999999 && pid >= 0);
@@ -225,9 +228,6 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
     printf("Memory usage is %lf\n", pmem);
     assert(pmem >= 0.0 && pmem <= 9999);
     #endif
-
-    user[user_width] = '\0';
-    comm[comm_width] = '\0';
 
     HASH_FIND_INT(pg_hash_table, &pgid, new_atts);
     if (new_atts == NULL) {
