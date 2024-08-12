@@ -182,8 +182,8 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
   // char pgid[pgid_width+1];
   int pid = 0;
   int pgid = 0;
-  char user[user_width+1];
-  char comm[comm_width+1];
+  char user[USER_WIDTH+1];
+  char comm[COMM_WIDTH+1];
   //char pcpu[pcpu_width+1];
   //char pmem[pmem_width+1];
   double pcpu = 0.0;
@@ -196,7 +196,13 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
     // strncpy(comm, line + pid_width + pgid_width + user_width + 3, comm_width);
     // strncpy(pcpu, line + pid_width + pgid_width + user_width + comm_width + 4, pcpu_width);
     // strncpy(pmem, line + pid_width + pgid_width + user_width + comm_width + pcpu_width + 5, pmem_width);
-    sscanf(line, "%i %i %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
+    //sscanf(line, "%i %i %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
+    int rc = sscanf(line, "%d %d %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
+    if (rc != 6) {
+      printf("sscanf returned %i", rc);
+      perror("sscanf");
+      exit(EXIT_FAILURE);
+    }
     #ifdef DEBUG
     printf("pid is %i\n", pid);
     assert(pid <= 9999999 && pid >= 0);
