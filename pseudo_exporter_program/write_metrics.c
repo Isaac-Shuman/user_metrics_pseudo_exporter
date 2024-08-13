@@ -204,7 +204,7 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
       exit(EXIT_FAILURE);
     }
     //user[USER_WIDTH] = '\0'; //this should be uneccesary
-    //comm[COMM_WIDTH] = '\0';
+    comm[COMM_WIDTH] = '\0';
 
     #ifdef DEBUG
     printf("pid is %i\n", pid);
