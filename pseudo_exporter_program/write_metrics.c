@@ -164,10 +164,12 @@ int main(int argc, char **argv) {
       #ifdef GATHER_TOP
       pclose(fp);
       #endif
+      
       #ifdef GATHER_SLURM
       pclose(slurm_fp);
       clear_user_table();
       #endif
+      
       #ifdef GATHER_PS
       pclose(ps_fp);
       clear_pg_table();
@@ -260,7 +262,7 @@ int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) 
     while (token != NULL) {
       if (c == col_nums[0]) {
         #ifdef DEBUG
-        printf("%s ", token);
+        printf("slurm user is %s ", token);
         #endif
         HASH_FIND_STR(user_hash_table, token, new_user_atts);
         if (new_user_atts == NULL) {
@@ -270,7 +272,7 @@ int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) 
       }
       else if (c == col_nums[1]) {
         #ifdef DEBUG
-        printf("%s ", token);
+        printf("ncpu is %s ", token);
         #endif
         new_user_atts->ncpus = new_user_atts->ncpus + atoi(token);
       }
@@ -298,6 +300,7 @@ struct user_attributes *init_user_atts(char *username) {
   struct user_attributes *new_user_atts;
   new_user_atts = malloc(sizeof(struct user_attributes));
   strcpy(new_user_atts->user, username);
+  new_user_atts->ncpus = 0;
   return new_user_atts;
 }
 
