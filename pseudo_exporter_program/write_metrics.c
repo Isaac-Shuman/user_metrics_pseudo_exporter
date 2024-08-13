@@ -71,6 +71,7 @@ size_t pid_width, size_t pgid_width, size_t user_width, size_t comm_width, size_
 struct process_group_attributes *init_process_group_atts(int pgid);
 struct user_attributes *init_user_atts(char *username);
 void clear_pg_table(void);
+void clear_user_table(void);
 void handle_sigint(int sig);
 
 
@@ -165,6 +166,7 @@ int main(int argc, char **argv) {
       #endif
       #ifdef GATHER_SLURM
       pclose(slurm_fp);
+      clear_user_table();
       #endif
       #ifdef GATHER_PS
       pclose(ps_fp);
@@ -306,6 +308,17 @@ void clear_pg_table(void)
 
     HASH_ITER(hh, pg_hash_table, current_user, tmp) {
         HASH_DEL(pg_hash_table, current_user);  /* delete it (users advances to next) */
+        free(current_user);             /* free it */
+    }
+}
+
+void clear_user_table(void)
+{
+    struct user_attributes *current_user;
+    struct user_attributes *tmp;
+
+    HASH_ITER(hh, user_hash_table, current_user, tmp) {
+        HASH_DEL(user_hash_table, current_user);  /* delete it (users advances to next) */
         free(current_user);             /* free it */
     }
 }
