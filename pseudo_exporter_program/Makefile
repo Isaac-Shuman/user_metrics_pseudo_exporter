@@ -1,7 +1,7 @@
 EXPORTER_PORT = 9100
 objects = write_metrics.o
 EXPOSITION_FILENAME = /tmp/added_by_pseudo_exporter.prom
-EXPOSITION_DIR = $(shell dirrname $(EXPOSITION_FILENAME))
+EXPOSITION_DIR = $(shell dirname $(EXPOSITION_FILENAME))
 CFLAGS = -DEXPOSITION_FILENAME=\"$(EXPOSITION_FILENAME)\"
 
 write_metrics : $(objects)
