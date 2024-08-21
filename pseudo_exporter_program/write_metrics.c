@@ -24,9 +24,13 @@
 #define PMEM_WIDTH 5
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
+<<<<<<< HEAD
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom" //This is commented out because it was migrated to the makefile
 
 //used to conditionally include parts fo the program
+=======
+//#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
+>>>>>>> edc394c5984c546a8fc253b9ebaa4db7c524372f
 //#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
@@ -165,10 +169,12 @@ int main(int argc, char **argv) {
       #ifdef GATHER_TOP
       pclose(fp);
       #endif
+      
       #ifdef GATHER_SLURM
       pclose(slurm_fp);
       clear_user_table();
       #endif
+      
       #ifdef GATHER_PS
       pclose(ps_fp);
       clear_pg_table();
@@ -252,7 +258,7 @@ int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) 
     while (token != NULL) {
       if (c == col_nums[0]) {
         #ifdef DEBUG
-        printf("%s ", token);
+        printf("slurm user is %s ", token);
         #endif
         HASH_FIND_STR(user_hash_table, token, new_user_atts);
         if (new_user_atts == NULL) {
@@ -262,7 +268,7 @@ int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) 
       }
       else if (c == col_nums[1]) {
         #ifdef DEBUG
-        printf("%s ", token);
+        printf("ncpu is %s ", token);
         #endif
         new_user_atts->ncpus = new_user_atts->ncpus + atoi(token);
       }
