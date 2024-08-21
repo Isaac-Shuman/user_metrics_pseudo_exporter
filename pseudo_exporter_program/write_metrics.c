@@ -24,13 +24,9 @@
 #define PMEM_WIDTH 5
 
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
-<<<<<<< HEAD
 //#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom" //This is commented out because it was migrated to the makefile
 
 //used to conditionally include parts fo the program
-=======
-//#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
->>>>>>> edc394c5984c546a8fc253b9ebaa4db7c524372f
 //#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
