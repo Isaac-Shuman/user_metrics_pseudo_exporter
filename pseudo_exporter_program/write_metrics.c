@@ -30,7 +30,7 @@
 //#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
-#define GATHER_PS
+//#define GATHER_PS
 
 //necessary to convert macros defined integers to strings
 #define STRINGIZE(x) #x
@@ -121,14 +121,14 @@ int main(int argc, char **argv) {
         return 1;
       }
       find_empty_line(fp, line, sizeof(line));
-      find_cols_of_fields((char **) fields, sizeof(fields)/sizeof(fields[0]), col_nums, fp, line, sizeof(line)); //make sizeof stuff a macro??
+      find_cols_of_fields((const char **) fields, sizeof(fields)/sizeof(fields[0]), col_nums, fp, line, sizeof(line)); //make sizeof stuff a macro??
       parse_top_for_metrics(fp, line, sizeof(line), col_nums);
       //write_top_metrics();
       #endif
 
       #ifdef GATHER_SLURM
       slurm_fp = popen("sacct -r gpus  --allusers --format=User,ncpus -X -s R", "r"); 
-      find_cols_of_fields((char **) slurm_fields, sizeof(slurm_fields)/sizeof(slurm_fields[0]), slurm_col_nums, slurm_fp, line, sizeof(line));
+      find_cols_of_fields((const char **) slurm_fields, sizeof(slurm_fields)/sizeof(slurm_fields[0]), slurm_col_nums, slurm_fp, line, sizeof(line));
       if (fgets(line, sizeof(line), slurm_fp) == NULL) //skip line
             return 1;
       parse_slurm_for_metrics(slurm_fp, line, sizeof(line), slurm_col_nums);
