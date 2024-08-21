@@ -10,13 +10,12 @@
 #include "parse_helpers.h"
 
 #define MAX_LINE_SIZE 256
-#define MAX_FILE_PATH 256
 #define MAX_USER_SIZE 64 //only used for mallocing the user name when storing it in the user_attributes structure
-#define MAX_COMMAND_SIZE 64
 #define DELAY 3
 
-#define TOP_WIDTH 512 //passed with -w flag
+#define TOP_WIDTH 512 //passed with -w flag to top
 
+//Macros used for specifiying the widths when running ps
 #define PID_WIDTH  8
 #define PGID_WIDTH 8
 #define USER_WIDTH 16
@@ -24,15 +23,18 @@
 #define PCPU_WIDTH 5
 #define PMEM_WIDTH 5
 
-#define STRINGIZE(x) #x
-#define STRINGIZE_WRAP(x) STRINGIZE(x)
-
 //where you would like to write the metrics for node-exporter. Make sure you also change the --collector.textfile.directory when running node_exporter
-//#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom"
-#define DEBUG
+//#define EXPOSITION_FILENAME "/tmp/added_by_pseudo_exporter.prom" //This is commented out because it was migrated to the makefile
+
+//used to conditionally include parts fo the program
+//#define DEBUG
 //#define GATHER_TOP
 //#define GATHER_SLURM
 #define GATHER_PS
+
+//necessary to convert macros defined integers to strings
+#define STRINGIZE(x) #x
+#define STRINGIZE_WRAP(x) STRINGIZE(x)
 
 #define NUM_OF_TOP_METRICS 3
 #define NUM_OF_SLURM_METRICS 2
@@ -49,6 +51,7 @@
     fclose(file);                                                                                        \
   } while (0)       
 
+//used to write a block in the text file exposing data to Prometheus in text expositional
 #define WRITE_METRICS_PG_FLOAT(metric_name, help_msg, type)                                                 \
   do {                                                                                                   \
     struct process_group_attributes *current_user;                                                                \
@@ -93,7 +96,7 @@ struct user_attributes {
 struct process_group_attributes *pg_hash_table = NULL;
 struct user_attributes *user_hash_table = NULL;
 
-FILE *fp; //change to top_fp
+FILE *fp; //should change to top_fp
 FILE *slurm_fp;
 FILE *ps_fp;
 
@@ -103,9 +106,7 @@ int main(int argc, char **argv) {
     int col_nums[NUM_OF_TOP_METRICS];
     char *slurm_fields[] = {"User", "NCPUS"};
     int slurm_col_nums[NUM_OF_SLURM_METRICS];
-    //char *ps_fields[] = {"PID", "PGID", "USER", "COMMAND", "%CPU", "%MEM"};
-
-    signal(SIGINT, handle_sigint);
+    //char *ps_fields[] = {"PID", "PGID", "USER", "COMMAND", "%CPU", "%MEM"}; //commented out because ps text parsing works differently than top or slurm
 
     while(1) {
       //system("top -b -n 1 > added_by_exporter.prom");
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
       #endif
 
       #ifdef GATHER_SLURM
-      slurm_fp = popen("sacct -r gpus  --allusers --format=User,ncpus -X -s R", "r"); //should fail silently
+      slurm_fp = popen("sacct -r gpus  --allusers --format=User,ncpus -X -s R", "r"); 
       find_cols_of_fields((char **) slurm_fields, sizeof(slurm_fields)/sizeof(slurm_fields[0]), slurm_col_nums, slurm_fp, line, sizeof(line));
       if (fgets(line, sizeof(line), slurm_fp) == NULL) //skip line
             return 1;
@@ -180,32 +181,22 @@ int main(int argc, char **argv) {
 
 int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
                         size_t pid_width, size_t pgid_width, size_t user_width, size_t comm_width, size_t pcpu_width, size_t pmem_width) {
-  // char pid[pid_width+1];
-  // char pgid[pgid_width+1];
+  /*Given a file pointer to the output of the ps command, parses it and places the aggregated process group data into the hashmap*/
   int pid = 0;
   int pgid = 0;
   char user[USER_WIDTH+1];
   char comm[COMM_WIDTH+1];
-  //char pcpu[pcpu_width+1];
-  //char pmem[pmem_width+1];
   double pcpu = 0.0;
   double pmem = 0.0;
   struct process_group_attributes *new_atts = NULL;
   while (fgets(line, line_size, fp) != NULL) {
-    // strncpy(pid, line, pid_width);
-    // strncpy(pgid, line + pid_width + 1, pgid_width);
-    // strncpy(user, line + pid_width + pgid_width + 2, user_width);
-    // strncpy(comm, line + pid_width + pgid_width + user_width + 3, comm_width);
-    // strncpy(pcpu, line + pid_width + pgid_width + user_width + comm_width + 4, pcpu_width);
-    // strncpy(pmem, line + pid_width + pgid_width + user_width + comm_width + pcpu_width + 5, pmem_width);
-    //sscanf(line, "%i %i %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
     int rc = sscanf(line, "%d %d %s %"STRINGIZE_WRAP(COMM_WIDTH)"c %lf %lf", &pid, &pgid, user, comm, &pcpu, &pmem);
     if (rc != 6) {
       printf("sscanf returned %i", rc);
       perror("sscanf");
       exit(EXIT_FAILURE);
     }
-    //user[USER_WIDTH] = '\0'; //this should be uneccesary
+    //user[USER_WIDTH] = '\0'; //this should be uneccesary it is gathered with %s
     comm[COMM_WIDTH] = '\0';
 
     #ifdef DEBUG
@@ -231,7 +222,7 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
     assert(pmem >= 0.0 && pmem <= 9999);
     #endif
 
-    HASH_FIND_INT(pg_hash_table, &pgid, new_atts);
+    HASH_FIND_INT(pg_hash_table, &pgid, new_atts); //I made pg_hash_table a global variable because that's how the documentation specified to use it.
     if (new_atts == NULL) {
       new_atts = init_process_group_atts(pgid);
       HASH_ADD_INT(pg_hash_table, pgid, new_atts);
@@ -250,6 +241,7 @@ int parse_ps_for_metrics(FILE *fp, char *line, int line_size, \
 }
 
 int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) {
+  /*It is hard-coded that col_nums be of size 2 and that USER and NCPUS are the first and second fields*/
   char *token = NULL;
   int c = 0;
   struct user_attributes *new_user_atts;
@@ -283,14 +275,14 @@ int parse_slurm_for_metrics(FILE *fp, char *line, int line_size, int *col_nums) 
 
 struct process_group_attributes *init_process_group_atts(int pgid) {
   /*Don't forget to free the malloced structure*/
-  struct process_group_attributes *new_user_atts;
-  new_user_atts = malloc(sizeof(struct process_group_attributes));
+  struct process_group_attributes *new_pg_atts;
+  new_pg_atts = malloc(sizeof(struct process_group_attributes));
   //strcpy(new_user_atts->user, username);
-  new_user_atts->cpu_usage = 0.0;
-  new_user_atts->ram_usage = 0.0;
-  new_user_atts->pgid = pgid;
+  new_pg_atts->cpu_usage = 0.0;
+  new_pg_atts->ram_usage = 0.0;
+  new_pg_atts->pgid = pgid;
 
-  return new_user_atts;
+  return new_pg_atts;
 }
 
 struct user_attributes *init_user_atts(char *username) {
@@ -298,10 +290,12 @@ struct user_attributes *init_user_atts(char *username) {
   struct user_attributes *new_user_atts;
   new_user_atts = malloc(sizeof(struct user_attributes));
   strcpy(new_user_atts->user, username);
+  new_user_atts->ncpus = 0;
   return new_user_atts;
 }
 
 void clear_pg_table(void)
+/*deallocate the pg_hash_table*/
 {
     struct process_group_attributes *current_user;
     struct process_group_attributes *tmp;
@@ -313,6 +307,7 @@ void clear_pg_table(void)
 }
 
 void clear_user_table(void)
+/*deallocate the user_hash_table*/
 {
     struct user_attributes *current_user;
     struct user_attributes *tmp;
@@ -325,11 +320,7 @@ void clear_user_table(void)
 
 
 void handle_sigint(int sig) {
+/*This function is ultimately pointless and can cause obnoxious doble free errors if Ctrl-C is pressed at the right time*/
   printf("\nMetrics writer exiting\n");
-
-  clear_pg_table();
-  pclose(fp);
-  pclose(slurm_fp);
-
   exit(0);
 }
