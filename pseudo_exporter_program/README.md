@@ -3,8 +3,8 @@
 This program
 1. Runs ps and sacct with popen()  
 2. It parses them for data
-   2a. ps is parsed for the %CPU and %MEM of every process. This data is aggregated by process group by reading line by line and using a hash table that stores every process group with their pgid as their key. The user and command stored with every process group is that of the process group leader (process where pid == pgid).
-   2b. sacct is parsed for the NCPUS of every job. This data is aggregated by user by reading line by line and using a hash table that stores every user with their username as their key.
+   - ps is parsed for the %CPU and %MEM of every process. This data is aggregated by process group by reading line by line and using a hash table that stores every process group with their pgid as their key. The user and command stored with every process group is that of the process group leader (process where pid == pgid).
+   - sacct is parsed for the NCPUS of every job. This data is aggregated by user by reading line by line and using a hash table that stores every user with their username as their key.
 3. It prints the metrics in Prometheus text-based exposition format in /tmp/added_by_pseudo_exporter.prom (https://prometheus.io/docs/instrumenting/exposition_formats/)
 
 Truncated example output in /tmp/added_by_pseudo_exporter.prom:
@@ -38,9 +38,9 @@ Command I use for starting the pseudo_exporter:
 The metrics gathered are visible at this endpoint. Note that there will be additional metrics from Node Exporter. Thus, it is important to configure Prometheus to only gather the metrics we care about.
 
 # Potential Improvements
-1. Making scraper pull-based by making it an actual exporter by incorporating Prometheus Cllient libraries, thus making it an actual exporter that doesn't need to rely on Node Exporter
-2. Never closing top and letting it run continuously.
-3. Adding appropriate error handling that can check if the output of ps or sacct has changed.
+- Making scraper pull-based by making it an actual exporter by incorporating Prometheus Cllient libraries, thus making it an actual exporter that doesn't need to rely on Node Exporter
+- Never closing top and letting it run continuously.
+- Adding appropriate error handling that can check if the output of ps or sacct has changed.
 
 # Notes/Q&A
 
