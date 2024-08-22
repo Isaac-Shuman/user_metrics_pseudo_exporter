@@ -28,12 +28,12 @@ ncpus{user="shumani"} 20.00
 
 This output is then able to be parsed by the "Textfile Collector" of the official Prometheus Node Exporter (https://github.com/prometheus/node_exporter)
 
-# Running
+# Usage
 
 To build the program such that it gathers from ps and sacct and has debug mode enabled :
 ``` make EXTRA_FLAGS='-DGATHER_SLURM -DGATHER_PS -DDEBUG' ```
 
-Command I use for starting the pseudo_exporter:
+Command I use for starting the Node Exporter:
 ``` ./node_exporter-1.8.2.linux-amd64/node_exporter --collector.disable-defaults --collector.textfile --collector.textfile.directory=/tmp/ --web.listen-address=:9201 --web.disable-exporter-metrics & ```
 The metrics gathered are visible at this endpoint. Note that there will be additional metrics from Node Exporter. Thus, it is important to configure Prometheus to only gather the metrics we care about.
 
@@ -44,7 +44,11 @@ The metrics gathered are visible at this endpoint. Note that there will be addit
 
 # Notes/Q&A
 
+Hash table documenttion: https://troydhanson.github.io/uthash/
+
 The reading from top functionality is likely broken and I have not had time to test it after I did some refactoring.
+
+I did not use valgrind or linters provided by VSCode
 
 Q: Why did I write this text parser in C?
 A: I originally envisioned it as a /proc pseudo-filesystem miner that could imitate commandline tools such as top and ps and that the text parsing was a stopgap measure. Since it's intended to run constantly, it's also important that it be high-performance. Golang would have been a better choice but I am unfamiliar with the language.
@@ -72,4 +76,5 @@ Output of sacct -r gpus  --allusers --format=User,ncpus -X -s R
 
 ```
 
-
+TODO:
+explain the sscanf line and the text parsing in main better
